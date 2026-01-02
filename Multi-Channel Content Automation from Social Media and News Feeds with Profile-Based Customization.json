@@ -1,0 +1,920 @@
+{
+  "name": "Multi-Channel Content Automation from Social Media and News Feeds with Profile-Based Customization",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "026cceaf-908b-42a7-bb34-13b23414a2e5",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -2592,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "contentSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheet ID for content items__>",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "profileSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheet ID for profile rules__>",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "outputSheetId",
+              "value": "<__PLACEHOLDER_VALUE__Google Sheet ID for generated content output__>",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "72ad467e-b407-43b7-b630-a7780186df96",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2368,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.contentSheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Content Items"
+        },
+        "options": {}
+      },
+      "id": "5bbe244f-5735-4ea8-a946-cfcd785caace",
+      "name": "Get Content Items from Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2144,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      },
+      "id": "49183fbe-5a83-4e19-b570-a4fb0417cc2e",
+      "name": "Split Content Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1920,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "rss",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "RSS"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "twitter",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Twitter"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.sourceType }}",
+                    "rightValue": "reddit",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reddit"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "33f18af0-e31f-4dbe-9578-7837cba561e6",
+      "name": "Route by Source Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -1696,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.sourceUrl }}",
+        "options": {}
+      },
+      "id": "20fb5af2-012a-4102-b020-1ec333c6204d",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        -1472,
+        232
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__Twitter/X scraping API endpoint (e.g., Apify, Phantombuster)__>",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "query",
+              "value": "={{ $json.sourceUrl }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0367f883-b9e1-478d-a5fa-ba647d2b6b3d",
+      "name": "Scrape X (Twitter)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1472,
+        424
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "subreddit": "={{ $json.sourceUrl }}",
+        "filters": {}
+      },
+      "id": "7e7da014-cc21-47a5-a407-79e4d57ae9e8",
+      "name": "Fetch Reddit Posts",
+      "type": "n8n-nodes-base.reddit",
+      "typeVersion": 1,
+      "position": [
+        -1472,
+        616
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "7241c195-e107-4186-a1b1-8e5738e20826",
+      "name": "Merge All Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1248,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze and summarize this content:\n\nTitle: {{ $json.title }}\nContent: {{ $json.content || $json.description || $json.text }}\nSource: {{ $json.source }}\nURL: {{ $json.link || $json.url }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a content analysis expert. Your task is to analyze news and social media content and extract key information.\n\nFor each piece of content:\n1. Create a concise summary (2-3 sentences)\n2. Extract 3-5 key points or takeaways\n3. Identify the main topic/category\n4. Assess the content angle or perspective\n5. Rate the quality and relevance (1-10)\n\nReturn your analysis in the structured JSON format provided."
+        }
+      },
+      "id": "13b90a20-7d72-484e-90e4-e11642d7caaf",
+      "name": "Summarize Content",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -1024,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"summary\": {\"type\": \"string\", \"description\": \"2-3 sentence summary\"},\n    \"keyPoints\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"description\": \"3-5 key takeaways\"},\n    \"topic\": {\"type\": \"string\", \"description\": \"Main topic or category\"},\n    \"contentAngle\": {\"type\": \"string\", \"description\": \"Perspective or angle of the content\"},\n    \"qualityScore\": {\"type\": \"number\", \"minimum\": 1, \"maximum\": 10},\n    \"relevanceScore\": {\"type\": \"number\", \"minimum\": 1, \"maximum\": 10}\n  },\n  \"required\": [\"summary\", \"keyPoints\", \"topic\", \"qualityScore\", \"relevanceScore\"]\n}"
+      },
+      "id": "97ce35f2-7133-4d75-b5e2-77e5f2a8f08d",
+      "name": "Summary Output Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -952,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.contentSheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Content Items"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "summary": "={{ $json.summary }}",
+            "keyPoints": "={{ $json.keyPoints.join(', ') }}",
+            "topic": "={{ $json.topic }}",
+            "contentAngle": "={{ $json.contentAngle }}",
+            "qualityScore": "={{ $json.qualityScore }}",
+            "relevanceScore": "={{ $json.relevanceScore }}",
+            "status": "Analyzed"
+          },
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "709036dd-3252-4203-8ef0-e9355ab1880d",
+      "name": "Update Sheet with Summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -672,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.profileSheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Profile Rules"
+        },
+        "filtersUI": {
+          "values": []
+        },
+        "options": {}
+      },
+      "id": "5ca9eb22-2e5e-4cf2-af88-f6b37050ad10",
+      "name": "Get Profile Rules",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -672,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "64579852-89a3-4608-a87c-e513382aae46",
+      "name": "Merge Content with Profiles",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -448,
+        504
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "profiles",
+        "options": {}
+      },
+      "id": "9615dfeb-df3f-4112-be84-6580979d8d1e",
+      "name": "Split by Profile",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        504
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a blog post based on this content:\n\nSummary: {{ $json.summary }}\nKey Points: {{ $json.keyPoints.join(', ') }}\nTopic: {{ $json.topic }}\nContent Angle: {{ $json.contentAngle }}\n\nProfile Rules:\nProfile Name: {{ $json.profileName }}\nTone: {{ $json.tone }}\nTarget Audience: {{ $json.targetAudience }}\nContent Spin: {{ $json.contentSpin }}\nWord Count: {{ $json.blogWordCount || '800-1000' }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert content writer specializing in creating engaging blog posts.\n\nYour task is to write a complete blog post that:\n1. Matches the specified tone and target audience\n2. Applies the content spin/angle provided\n3. Stays within the word count limit\n4. Includes an engaging title and meta description\n5. Is SEO-optimized with relevant keywords\n6. Has a clear structure with introduction, body, and conclusion\n\nReturn the blog post in the structured JSON format provided."
+        }
+      },
+      "id": "81c7b5f6-933c-437f-aa48-6c61295f8e56",
+      "name": "Generate Blog Post",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"title\": {\"type\": \"string\", \"description\": \"Blog post title\"},\n    \"metaDescription\": {\"type\": \"string\", \"description\": \"SEO meta description\"},\n    \"content\": {\"type\": \"string\", \"description\": \"Full blog post content in HTML or Markdown\"},\n    \"keywords\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"description\": \"SEO keywords\"},\n    \"wordCount\": {\"type\": \"number\"}\n  },\n  \"required\": [\"title\", \"content\", \"wordCount\"]\n}"
+      },
+      "id": "0ab18b7d-84cc-47a2-9b70-4b8f2f848104",
+      "name": "Blog Post Output Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        136,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate a tweet based on this content:\n\nSummary: {{ $json.summary }}\nKey Points: {{ $json.keyPoints.join(', ') }}\nTopic: {{ $json.topic }}\n\nProfile Rules:\nProfile Name: {{ $json.profileName }}\nTone: {{ $json.tone }}\nTarget Audience: {{ $json.targetAudience }}\nContent Spin: {{ $json.contentSpin }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a social media expert specializing in creating engaging tweets.\n\nYour task is to write a compelling tweet that:\n1. Stays within 280 characters\n2. Matches the specified tone and target audience\n3. Applies the content spin/angle provided\n4. Includes relevant hashtags (2-3 max)\n5. Has a clear call-to-action or hook\n6. Is optimized for engagement\n\nReturn the tweet in the structured JSON format provided."
+        }
+      },
+      "id": "10969c16-69ec-4d08-8579-77f15dd1f460",
+      "name": "Generate Tweet",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"tweetText\": {\"type\": \"string\", \"description\": \"Tweet content (max 280 chars)\"},\n    \"hashtags\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}, \"description\": \"Hashtags to include\"},\n    \"characterCount\": {\"type\": \"number\"}\n  },\n  \"required\": [\"tweetText\", \"characterCount\"]\n}"
+      },
+      "id": "82b10bbb-8455-4692-bc02-3d14b004e74f",
+      "name": "Tweet Output Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        72,
+        624
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Generate email content based on this:\n\nSummary: {{ $json.summary }}\nKey Points: {{ $json.keyPoints.join(', ') }}\nTopic: {{ $json.topic }}\n\nProfile Rules:\nProfile Name: {{ $json.profileName }}\nTone: {{ $json.tone }}\nTarget Audience: {{ $json.targetAudience }}\nContent Spin: {{ $json.contentSpin }}\nEmail Type: {{ $json.emailType || 'Newsletter' }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an email marketing expert specializing in creating engaging email content.\n\nYour task is to write compelling email content that:\n1. Has an attention-grabbing subject line\n2. Matches the specified tone and target audience\n3. Applies the content spin/angle provided\n4. Includes a clear structure: opening, body, call-to-action\n5. Is optimized for email deliverability and engagement\n6. Keeps the content concise and scannable\n\nReturn the email content in the structured JSON format provided."
+        }
+      },
+      "id": "fbc5b952-e52e-4e9f-8780-139e889096ad",
+      "name": "Generate Email Content",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        0,
+        904
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"subject\": {\"type\": \"string\", \"description\": \"Email subject line\"},\n    \"preheader\": {\"type\": \"string\", \"description\": \"Email preheader text\"},\n    \"body\": {\"type\": \"string\", \"description\": \"Email body content in HTML\"},\n    \"callToAction\": {\"type\": \"string\", \"description\": \"CTA text and link\"}\n  },\n  \"required\": [\"subject\", \"body\"]\n}"
+      },
+      "id": "330e1df7-bf01-4d44-b877-484403d12b2b",
+      "name": "Email Output Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        72,
+        1128
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "8e6e5b93-cd2e-4a0b-bffb-0ed0f2d9de03",
+      "name": "Merge Generated Content",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        352,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Workflow Configuration').first().json.outputSheetId }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Generated Content"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contentId": "={{ $json.contentId }}",
+            "profileName": "={{ $json.profileName }}",
+            "blogTitle": "={{ $json.title }}",
+            "blogContent": "={{ $json.content }}",
+            "tweetText": "={{ $json.tweetText }}",
+            "emailSubject": "={{ $json.subject }}",
+            "emailBody": "={{ $json.body }}",
+            "generatedAt": "={{ $now }}",
+            "status": "Ready for Review"
+          },
+          "matchingColumns": [
+            "contentId",
+            "profileName",
+            "blogTitle",
+            "blogContent",
+            "tweetText",
+            "emailSubject",
+            "emailBody",
+            "generatedAt",
+            "status"
+          ],
+          "schema": [
+            {
+              "id": "contentId",
+              "displayName": "contentId",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profileName",
+              "displayName": "profileName",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "blogTitle",
+              "displayName": "blogTitle",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "blogContent",
+              "displayName": "blogContent",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tweetText",
+              "displayName": "tweetText",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "emailSubject",
+              "displayName": "emailSubject",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "emailBody",
+              "displayName": "emailBody",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "generatedAt",
+              "displayName": "generatedAt",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": true,
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9357fe43-9a04-41e1-aa54-09f75877f039",
+      "name": "Write Generated Content to Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        576,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "id": "b465fe4d-6992-4c56-97b5-2713db9edfda",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        8,
+        224
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "pcs6W6oTuUoQEP0s",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Get Content Items from Sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Profile Rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Content Items from Sheet": {
+      "main": [
+        [
+          {
+            "node": "Split Content Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Content Items": {
+      "main": [
+        [
+          {
+            "node": "Route by Source Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Source Type": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Scrape X (Twitter)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Reddit Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape X (Twitter)": {
+      "main": [
+        [
+          {
+            "node": "Merge All Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge All Sources": {
+      "main": [
+        [
+          {
+            "node": "Summarize Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Content",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Blog Post",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Tweet",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Email Content",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary Output Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Summarize Content",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Content": {
+      "main": [
+        [
+          {
+            "node": "Update Sheet with Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Sheet with Summary": {
+      "main": [
+        [
+          {
+            "node": "Merge Content with Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Profile Rules": {
+      "main": [
+        [
+          {
+            "node": "Merge Content with Profiles",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Content with Profiles": {
+      "main": [
+        [
+          {
+            "node": "Split by Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split by Profile": {
+      "main": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Tweet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Email Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Blog Post Output Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Blog Post",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tweet Output Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Tweet",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Output Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Email Content",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Merge Generated Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Tweet": {
+      "main": [
+        [
+          {
+            "node": "Merge Generated Content",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Generated Content": {
+      "main": [
+        [
+          {
+            "node": "Write Generated Content to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0a3fff04-5a0b-44cc-ab85-a61cafbb2c61",
+  "meta": {
+    "instanceId": "002b476c246ad2e7008d77d35d513d80aff35df8a5fe6a54643c28885f3f9776"
+  },
+  "id": "XCoQNItlRDUfL03X",
+  "tags": []
+}
